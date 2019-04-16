@@ -1,0 +1,168 @@
+#!/bin/bash
+# -*- coding: UTF-8 -*-
+# gitstatus -- produce the current git repo status on STDOUT
+#
+# based on code from: Alan K. Stebbens <aks@stebbens.org> [http://github.com/aks]
+
+# helper functions
+count_lines() { echo "$1" | grep -E -c -e "^$2" ; }
+all_lines() { echo "$1" | grep -E -c -v "^$" ; }
+
+# is git even installed?
+which git > /dev/null 2>&1 || exit
+
+# are we even in a working tree?
+inrepo=$(git rev-parse --is-inside-work-tree 2>&1)
+[[ $? -ne 0 ]] && exit 0
+case "$inrepo" in
+fatal*)	exit 0 ;;
+false)	exit 0 ;;
+esac
+
+remote="$(git remote)"
+case $remote in
+""|local) ;;
+*)
+	url="$(git remote get-url $(git remote))"
+	case $url in
+	http:*)
+		url=${url#http://}
+		user=${url%%@*}
+		url=${url##*@}
+		url=${url%%/*}
+		port=80
+	;;
+	https:*)
+		url=${url#https://}
+		user=${url%%@*}
+		url=${url##*@}
+		url=${url%%/*}
+		port=443
+	;;
+	*)
+		url=${url##*@}
+		url=${url%%:*}
+		port=22
+	;;
+	esac
+
+	case $url in
+	github.com) ;;
+	nix.eseke.net) ;;
+	*)
+		# avoid spurious fetch attempts
+		url=
+	;;
+	esac
+
+	if [[ -n $url ]]; then
+		head_file="$(git rev-parse --git-dir)/FETCH_HEAD"
+
+		now="$(date +%s)"
+		modt=$now
+		inettest="true"
+		case "$OSTYPE" in
+		darwin*)
+			modt=$(stat -f %m $head_file 2> /dev/null)
+			inettest="/usr/bin/nc -G 1 -w 1 $url $port"
+			;;
+		esac
+
+		if [[ -n $modt ]]; then
+			#advance modification time by 24-hours
+			modt="$(expr $modt + 86400)"
+			if [[ $now -gt $modt ]]; then
+				if $inettest > /dev/null 2>&1; then
+					echo "git fetch…"
+					git fetch > /dev/null 2>&1
+
+				else
+					echo "remote down"
+					touch $head_file
+				fi
+			fi
+		fi
+	fi
+;;
+esac
+
+gitstatus=$(git status --porcelain --branch --untracked-files=all 2>&1)
+# if the diff is fatal, exit now
+case "$gitstatus" in
+fatal*)	exit 0 ;;
+esac
+
+branchinfo=$(echo "$gitstatus" | grep -F "## ")
+branchinfo=${branchinfo##\#\# }
+
+remote=${branchinfo##*...}
+remote=${remote%% *}
+remote=${remote#origin/}
+
+branch=${branchinfo%%...*}
+case $branch in
+*"No commits yet on "*)
+	branch=${branch##*No commits yet on }
+	remote="local"
+;;
+*"Initial commit on "*)
+	branch=${branch##*Initial commit on }
+	remote="local"
+;;
+esac
+
+num_ahead=$(echo "$branchinfo" | grep -o "ahead [0-9][0-9]*")
+num_ahead=${num_ahead#ahead }
+
+num_behind=$(echo "$branchinfo" | grep -o "behind [0-9][0-9]*")
+num_behind=${num_behind#behind }
+
+GOOD_CHANGE_PATTERN="[ACDMRT]"
+
+num_untracked=$(count_lines "$gitstatus" "\?\?")
+num_staged=$(count_lines "$gitstatus" "${GOOD_CHANGE_PATTERN} ")
+num_changed=$(count_lines "$gitstatus", " ${GOOD_CHANGE_PATTERN}")
+num_moving=$(count_lines "$gitstatus", "RM")
+
+num_alert=$(( $(count_lines "$gitstatus" "[UXB]") + $(count_lines "$gitstatus" "[^ #?UXB][^ ]") ))
+
+num_stashed=0
+if [[ -z "$GIT_PROMPT_IGNORE_STASH" ]]; then
+	num_stashed=$(git stash list | grep -E -c -v "^$")
+fi
+
+# get our prompt colors if they exist
+[[ -r ~/.promptcolors ]] && . ~/.promptcolors
+
+# if remote is same as branch, then it is redundant info,
+# so don’t show it.
+if [[ $remote = $branch ]]; then
+	remote=
+fi
+
+case $remote in
+"")	;;
+local)	branch="${branch}:${SHARP}$remote" ;;
+*)	branch="${branch}:${BLUNT}$remote" ;;
+esac
+
+if [[ -n $user ]]; then
+	branch="${SHARP}‽${NORMAL}@${branch}"
+fi
+
+tracking=
+[[ -n $num_ahead ]]  && tracking="${tracking}${BLUNT}↑${num_ahead}"
+[[ -n $num_behind ]] && tracking="${tracking}${SHARP}↓${num_behind}"
+
+state="${GOOD}✓"
+if [[ $(( num_staged + num_alert + num_changed + num_untracked + num_stashed )) != 0 ]] ; then
+	state=
+	[[ $num_alert -gt 0 ]]     && state="${state}${PIERCE}!${num_alert}"
+	[[ $num_stashed -gt 0 ]]   && state="${state}${SHARP}⚑${num_stashed}"
+	[[ $num_moving -gt 0 ]]    && state="${state}${SHARP}↻${num_moving}"
+	[[ $num_staged -gt 0 ]]    && state="${state}${SHARP}●${num_staged}"
+	[[ $num_changed -gt 0 ]]   && state="${state}${FLUFFY}∆${num_changed}"
+	[[ $num_untracked -gt 0 ]] && state="${state}${SHARP}…${num_untracked}"
+fi
+
+printf "${NORMAL}[${branch}${tracking}${NORMAL}|${state}${NORMAL}]\n"
