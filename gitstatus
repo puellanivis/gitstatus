@@ -20,6 +20,7 @@ false)	exit 0 ;;
 esac
 
 COLORS="true"
+PRINT_WORK_DIR="false"
 
 while [[ $# -gt 0 ]]; do
 	key="$1"
@@ -31,6 +32,9 @@ while [[ $# -gt 0 ]]; do
 	;;
 	--nocolors)
 		COLORS="false"
+	;;
+	--pwd)
+		PRINT_WORK_DIR="true"
 	;;
 	--)
 		shift
@@ -193,4 +197,6 @@ if [[ $(( num_staged + num_alert + num_changed + num_untracked + num_stashed )) 
 	[[ $num_untracked -gt 0 ]] && state="${state}${SHARP}…${num_untracked}"
 fi
 
-printf "${NORMAL}[${branch}${tracking}${NORMAL}|${state}${NORMAL}]\n"
+[[ $PRINT_WORK_DIR = "true" ]] && workdir="${BLUNT}$(basename "${PWD}")${NORMAL}:"
+
+printf "${NORMAL}${workdir}[${branch}${tracking}${NORMAL}|${state}${NORMAL}]\n"
