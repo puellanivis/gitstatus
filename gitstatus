@@ -19,6 +19,34 @@ fatal*)	exit 0 ;;
 false)	exit 0 ;;
 esac
 
+COLORS="true"
+
+while [[ $# -gt 0 ]]; do
+        key="$1"
+        val="${key#*=}"
+
+        case $key in
+	--colors=*)
+		COLORS="$val"
+	;;
+        --nocolors)
+                COLORS="false"
+        ;;
+        --)
+                shift
+                break
+        ;;
+        --*)
+                echo "unknown flag $1" >&2
+                exit 1
+        ;;
+        *)
+                break
+        ;;
+        esac
+        shift
+done
+
 remote="$(git remote)"
 case $remote in
 ""|local) ;;
@@ -132,7 +160,7 @@ if [[ -z "$GIT_PROMPT_IGNORE_STASH" ]]; then
 fi
 
 # get our prompt colors if they exist
-[[ -r ~/.promptcolors ]] && . ~/.promptcolors
+[[ $COLORS = "true" && -r ~/.promptcolors ]] && . ~/.promptcolors
 
 # if remote is same as branch, then it is redundant info,
 # so don’t show it.
