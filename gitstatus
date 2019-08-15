@@ -22,29 +22,29 @@ esac
 COLORS="true"
 
 while [[ $# -gt 0 ]]; do
-        key="$1"
-        val="${key#*=}"
+	key="$1"
+	val="${key#*=}"
 
-        case $key in
+	case $key in
 	--colors=*)
 		COLORS="$val"
 	;;
-        --nocolors)
-                COLORS="false"
-        ;;
-        --)
-                shift
-                break
-        ;;
-        --*)
-                echo "unknown flag $1" >&2
-                exit 1
-        ;;
-        *)
-                break
-        ;;
-        esac
-        shift
+	--nocolors)
+		COLORS="false"
+	;;
+	--)
+		shift
+		break
+	;;
+	--*)
+		echo "unknown flag $1" >&2
+		exit 1
+	;;
+	*)
+		break
+	;;
+	esac
+	shift
 done
 
 remote="$(git remote)"
