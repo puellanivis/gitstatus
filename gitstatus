@@ -21,6 +21,7 @@ esac
 
 COLORS="true"
 PRINT_WORK_DIR="false"
+VERBOSE="false"
 
 while [[ $# -gt 0 ]]; do
 	key="$1"
@@ -35,6 +36,9 @@ while [[ $# -gt 0 ]]; do
 	;;
 	--pwd)
 		PRINT_WORK_DIR="true"
+	;;
+	--verbose)
+		VERBOSE="true"
 	;;
 	--)
 		shift
@@ -77,6 +81,8 @@ case $remote in
 		port=22
 	;;
 	esac
+
+	[[ $VERBOSE = "true" ]] && echo "url:$url" "user:$user" "port:$port"
 
 	case $url in
 	github.com) ;;
