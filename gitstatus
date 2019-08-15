@@ -22,6 +22,7 @@ esac
 COLORS="true"
 PRINT_WORK_DIR="false"
 VERBOSE="false"
+SILENT="false"
 
 while [[ $# -gt 0 ]]; do
 	key="$1"
@@ -38,7 +39,12 @@ while [[ $# -gt 0 ]]; do
 		PRINT_WORK_DIR="true"
 	;;
 	--verbose)
+		SILENT="false"
 		VERBOSE="true"
+	;;
+	--silent)
+		SILENT="true"
+		VERBOSE="false"
 	;;
 	--)
 		shift
@@ -125,11 +131,11 @@ case $remote in
 			modt="$(expr $modt + 86400)"
 			if [[ $now -gt $modt ]]; then
 				if $inettest > /dev/null 2>&1; then
-					echo "git fetch…"
+					[[ $SILENT != "true" ]] && echo "git fetch…"
 					git fetch > /dev/null 2>&1
 
 				else
-					echo "remote down"
+					[[ $SILENT != "true" ]] && echo "remote down"
 					touch $head_file
 				fi
 			fi
