@@ -60,40 +60,50 @@ case $remote in
 ""|local) ;;
 *)
 	url="$(git remote get-url $(git remote))"
-	case $url in
+	case "$url" in
 	http:*)
-		url=${url#http://}
-		user=${url%%@*}
-		url=${url##*@}
-		url=${url%%/*}
+		scheme="http"
+		host=${url#http://}
+		user=${host%%@*}
+		[[ $user = $host ]] && user=""
+		host=${host##*@}
+		path=${host#*/}
+		host=${host%%/*}
 		port=80
 	;;
 	https:*)
-		url=${url#https://}
-		user=${url%%@*}
-		url=${url##*@}
-		url=${url%%/*}
+		scheme="https"
+		host=${url#https://}
+		user=${host%%@*}
+		[[ $user = $host ]] && user=""
+		host=${host##*@}
+		path=${host#*/}
+		host=${host%%/*}
 		port=443
 	;;
 	*)
-		url=${url##*@}
-		url=${url%%:*}
+		scheme="ssh"
+		user=${url%%@*}
+		host=${url##*@}
+		path=${host##*:}
+		path=${path%.git}
+		host=${host%%:*}
 		port=22
 	;;
 	esac
 
-	[[ $VERBOSE = "true" ]] && echo "url:$url" "user:$user" "port:$port"
+	[[ $VERBOSE = "true" ]] && echo "url:$url" "scheme:$scheme" "user:$user" "host:$host" "port:$port" "path:$path"
 
-	case $url in
+	case $host in
 	github.com) ;;
 	nix.eseke.net) ;;
 	*)
 		# avoid spurious fetch attempts
-		url=
+		host=
 	;;
 	esac
 
-	if [[ -n $url ]]; then
+	if [[ -n $host ]]; then
 		head_file="$(git rev-parse --git-dir)/FETCH_HEAD"
 
 		now="$(date +%s)"
@@ -102,8 +112,8 @@ case $remote in
 		case "$OSTYPE" in
 		darwin*)
 			modt=$(stat -f %m $head_file 2> /dev/null)
-			inettest="/usr/bin/nc -G 1 -w 1 $url $port"
-			;;
+			inettest="/usr/bin/nc -G 1 -w 1 $host $port"
+		;;
 		esac
 
 		if [[ -n $modt ]]; then
@@ -184,7 +194,7 @@ local)	branch="${branch}:${SHARP}$remote" ;;
 *)	branch="${branch}:${BLUNT}$remote" ;;
 esac
 
-if [[ -n $user ]]; then
+if [[ -n $user && $scheme != "ssh" ]]; then
 	branch="${SHARP}‽${NORMAL}@${branch}"
 fi
 
