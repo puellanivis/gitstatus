@@ -168,6 +168,11 @@ case $branch in
 	remote="local"
 ;;
 esac
+case $branchinfo in
+*...*) ;;
+*)     remote="" ;;
+esac
+[[ $VERBOSE = "true" ]] && echo "branchinfo=$branchinfo" "branch=$branch" "remote=$remote"
 
 num_ahead=$(echo "$branchinfo" | grep -o "ahead [0-9][0-9]*")
 num_ahead=${num_ahead#ahead }
@@ -192,14 +197,12 @@ fi
 # get our prompt colors if they exist
 [[ $COLORS = "true" && -r ~/.promptcolors ]] && . ~/.promptcolors
 
-# if remote is same as branch, then it is redundant info,
-# so don’t show it.
-if [[ $remote = $branch ]]; then
-	remote=
-fi
-
 case $remote in
-"")	;;
+"")
+	# If there is no remote, then count commit from master.
+	num_ahead="$( git rev-list --count "$branch" ^master -- )"
+;;
+$branch) ;;
 local)	branch="${branch}:${SHARP}$remote" ;;
 *)	branch="${branch}:${BLUNT}$remote" ;;
 esac
