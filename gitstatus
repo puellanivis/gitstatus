@@ -81,6 +81,7 @@ case $remote in
 		[[ $user = $host ]] && user=""
 		host=${host##*@}
 		path=${host#*/}
+		path=${path%.git}
 		repo=${path##*/}
 		host=${host%%/*}
 		port=80
@@ -92,6 +93,7 @@ case $remote in
 		[[ $user = $host ]] && user=""
 		host=${host##*@}
 		path=${host#*/}
+		path=${path%.git}
 		repo=${path##*/}
 		host=${host%%/*}
 		port=443
