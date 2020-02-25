@@ -211,6 +211,7 @@ case $remote in
 "")
 	# If there is no remote, then count commit from master.
 	num_ahead="$( git rev-list --count "$branch" ^master -- )"
+	[[ $num_ahead = "0" ]] && num_ahead=""
 ;;
 $branch) ;;
 local)	branch="${branch}:${SHARP}$remote" ;;
