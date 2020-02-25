@@ -21,6 +21,7 @@ esac
 
 COLORS="true"
 PRINT_WORK_DIR="false"
+PRINT_REPO="false"
 VERBOSE="false"
 SILENT="false"
 
@@ -37,6 +38,12 @@ while [[ $# -gt 0 ]]; do
 	;;
 	--pwd)
 		PRINT_WORK_DIR="true"
+	;;
+	--repo)
+		PRINT_REPO="true"
+	;;
+	--norepo)
+		PRINT_REPO="false"
 	;;
 	--verbose)
 		SILENT="false"
@@ -74,6 +81,7 @@ case $remote in
 		[[ $user = $host ]] && user=""
 		host=${host##*@}
 		path=${host#*/}
+		repo=${path##*/}
 		host=${host%%/*}
 		port=80
 	;;
@@ -84,6 +92,7 @@ case $remote in
 		[[ $user = $host ]] && user=""
 		host=${host##*@}
 		path=${host#*/}
+		repo=${path##*/}
 		host=${host%%/*}
 		port=443
 	;;
@@ -93,12 +102,13 @@ case $remote in
 		host=${url##*@}
 		path=${host##*:}
 		path=${path%.git}
+		repo=${path##*/}
 		host=${host%%:*}
 		port=22
 	;;
 	esac
 
-	[[ $VERBOSE = "true" ]] && echo "url:$url" "scheme:$scheme" "user:$user" "host:$host" "port:$port" "path:$path"
+	[[ $VERBOSE = "true" ]] && echo "url:$url" "scheme:$scheme" "user:$user" "host:$host" "port:$port" "path:$path" "repo:$repo"
 
 	case $host in
 	github.com) ;;
@@ -226,6 +236,7 @@ if [[ $(( num_staged + num_alert + num_changed + num_untracked + num_stashed )) 
 	[[ $num_untracked -gt 0 ]] && state="${state}${SHARP}…${num_untracked}"
 fi
 
-[[ $PRINT_WORK_DIR = "true" ]] && workdir="${BLUNT}$(basename "${PWD}")${NORMAL}:"
+[[ $PRINT_WORK_DIR = "true" ]]         && workdir="${BLUNT}$(basename "${PWD}")${NORMAL}:"
+[[ $PRINT_REPO = "true" && -n $repo ]] && workdir="${BLUNT}${repo}${NORMAL}:"
 
 printf "${NORMAL}${workdir}[${branch}${tracking}${NORMAL}|${state}${NORMAL}]\n"
