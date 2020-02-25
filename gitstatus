@@ -98,6 +98,18 @@ case $remote in
 		host=${host%%/*}
 		port=443
 	;;
+	ssh:*)
+		scheme="ssh"
+		host=${url#ssh://}
+		user=${host%%@*}
+		[[ $user = $host ]] && user=""
+		host=${host##*@}
+		path=${host#*/}
+		path=${path%.git}
+		repo=${path##*/}
+		host=${host%%/*}
+		port=22
+	;;
 	*)
 		scheme="ssh"
 		user=${url%%@*}
