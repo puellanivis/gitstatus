@@ -134,6 +134,7 @@ case $remote in
 	esac
 
 	if [[ -n $host ]]; then
+		# TODO: spin this off into a function, so we can use early returns.
 		head_file="$(git rev-parse --git-dir)/FETCH_HEAD"
 
 		now="$(date +%s)"
@@ -151,16 +152,34 @@ case $remote in
 		esac
 
 		if [[ -n $modt ]]; then
+			keystest="true"
+			case "$scheme" in
+			ssh) keystest="ssh-add -l" ;;
+			esac
+
 			#advance modification time by 24-hours
 			modt="$(expr $modt + 86400)"
 			if [[ $now -gt $modt ]]; then
-				if $inettest > /dev/null 2>&1; then
-					[[ $SILENT != "true" ]] && echo "git fetch…"
-					git fetch > /dev/null 2>&1
+				# Do we have any ssh agent identities?
+				if $keystest > /dev/null 2>&1; then
+					# Can we connect to the host?
+					if $inettest > /dev/null 2>&1; then
+						[[ $SILENT != "true" ]] && echo && echo "git fetch…"
 
+						git fetch > /dev/null 2>&1
+
+					else
+						[[ $SILENT != "true" ]] && echo && echo "remote down"
+
+						# This state can sometimes be quite difficult to resolve,
+						# so we pop open a circuitbreaker by touching the $head_file.
+						touch $head_file
+					fi
 				else
-					[[ $SILENT != "true" ]] && echo "remote down"
-					touch $head_file
+					[[ $SILENT != "true" ]] && echo && echo "no ssh identities"
+
+					# SSH keys are usually pretty easy to load up,
+					# so there is no need to pop the circuitbreaker here.
 				fi
 			fi
 		fi
