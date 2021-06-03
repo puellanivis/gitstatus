@@ -240,11 +240,33 @@ fi
 # get our prompt colors if they exist
 [[ $COLORS = "true" && -r ~/.promptcolors ]] && . ~/.promptcolors
 
+function find_main_branch {
+	local branch
+
+	for branch in "master" "main"; do
+		if git branch --no-color | tr -d ' ' | grep -qxw "$branch"; then
+			echo "$branch"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
 case $remote in
 "")
-	# If there is no remote, then count commit from master.
-	num_ahead="$( git rev-list --count "$branch" ^master -- )"
-	[[ $num_ahead = "0" ]] && num_ahead=""
+	main_branch="$(find_main_branch)"
+
+	if [[ $? -ne 0 ]]; then
+		[[ $VERBOSE = "true" ]] && echo "could not find primary branch: ${main_branch}"
+		num_ahead="?"
+		num_behind="?"
+	else
+		[[ $VERBOSE = "true" ]] && echo "found primary branch: ${main_branch}"
+		# If there is no remote, then count commit from master.
+		num_ahead="$( git rev-list --count "$branch" "^${main_branch}" -- )"
+		[[ $num_ahead = "0" ]] && num_ahead=""
+	fi
 ;;
 $branch) ;;
 local)	branch="${branch}:${SHARP}$remote" ;;
