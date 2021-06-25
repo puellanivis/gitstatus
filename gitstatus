@@ -210,9 +210,13 @@ case $branch in
 	branch=${branch##*Initial commit on }
 	remote="local"
 ;;
+*"(no branch)"*)
+	branch="no branch"
+	remote=""
 esac
 case $branchinfo in
 *...*) ;;
+HEAD*) remote="HEAD" ;;
 *)     remote="" ;;
 esac
 [[ $VERBOSE = "true" ]] && echo "branchinfo=$branchinfo" "branch=$branch" "remote=$remote"
@@ -270,6 +274,7 @@ case $remote in
 ;;
 $branch) ;;
 local)	branch="${branch}:${SHARP}$remote" ;;
+HEAD)	branch="${branch}:${SHARP}$remote" ;;
 *)	branch="${branch}:${BLUNT}$remote" ;;
 esac
 
