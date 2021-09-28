@@ -247,7 +247,7 @@ fi
 function find_main_branch {
 	local branch
 
-	for branch in "master" "main"; do
+	for branch in "staging" "master" "main"; do
 		if git branch --no-color | tr -d ' ' | grep -qxw "$branch"; then
 			echo "$branch"
 			return 0
